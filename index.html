@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blind Rating</title>
+<style>
+  :root { --bg:#f6f5f2; --panel:#fff; --ink:#1d1d1b; --muted:#6b6a65; --line:#dedcd5; --accent:#2f6fde; --warn:#b4471b; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#16171a; --panel:#1f2125; --ink:#ececea; --muted:#9a9a95; --line:#34363b; --accent:#79a6ff; --warn:#ff8a5c; } }
+  * { box-sizing: border-box; }
+  [hidden] { display:none !important; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 system-ui, sans-serif; }
+  header { display:flex; gap:16px; align-items:baseline; padding:12px 20px; border-bottom:1px solid var(--line); background:var(--panel); position:sticky; top:0; z-index:2; }
+  header h1 { font-size:16px; margin:0; }
+  header .progress { color:var(--muted); }
+  main { padding:4px 20px 60px; max-width:1340px; margin:0 auto; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px; margin-bottom:16px; }
+  .card.clip { padding:4px 12px 12px; }
+  /* Clip video: as large as fits below the top bar, so the whole frame is visible without scrolling. */
+  .card.clip video { width:min(1280px, 100%, calc((100vh - 60px) * 16 / 9)); margin:0 auto; }
+  video, iframe { display:block; width:1280px; max-width:100%; aspect-ratio:16/9; background:#000; border:0; border-radius:4px; }
+  iframe { height:720px; max-width:none; }
+  .form { display:grid; grid-template-columns: 1fr 1fr; gap:10px 32px; align-items:center; margin-top:12px; }
+  .form .wide { grid-column: 1 / -1; }
+  .ax { display:flex; align-items:center; justify-content:space-between; gap:12px; min-width:0; }
+  .ax .lab { min-width:0; }
+  .ax .lab b { display:block; font-size:14px; }
+  .anchor { color:var(--muted); font-size:12px; line-height:1.35; }
+  .guide { font-size:12px; line-height:1.35; margin-top:3px; color:var(--ink); opacity:.8; }
+  .guide i { font-style:normal; color:var(--muted); }
+  .toast { position:fixed; left:50%; bottom:20px; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:8px 16px; border-radius:6px; font-size:14px; z-index:20; box-shadow:0 2px 10px rgba(0,0,0,.25); }
+  iframe.game { outline:2px solid transparent; outline-offset:2px; }
+  iframe.game:focus { outline-color:var(--accent); }
+  .howto { font-size:12px; color:var(--muted); line-height:1.4; }
+  .axguide { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:8px 28px; margin:10px 0 4px; }
+  .axguide b { font-size:13px; }
+  .scale { display:flex; gap:3px; flex:none; }
+  .scale label { display:inline-flex; align-items:center; justify-content:center; width:32px; height:30px; border:1px solid var(--line); border-radius:6px; cursor:pointer; user-select:none; }
+  .scale input { display:none; }
+  .scale input:checked + span { font-weight:700; color:var(--accent); }
+  .scale label:has(input:checked) { border-color:var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+  .actions { display:flex; gap:10px; align-items:center; }
+  input[type=text] { flex:1; min-width:0; font:inherit; padding:6px 8px; background:var(--bg); color:var(--ink); border:1px solid var(--line); border-radius:6px; }
+  .actions label { white-space:nowrap; font-size:13px; color:var(--muted); }
+  .msg { font-size:13px; }
+  button { font:inherit; padding:8px 16px; border-radius:6px; border:1px solid var(--line); background:var(--panel); color:var(--ink); cursor:pointer; }
+  button.small { padding:2px 8px; font-size:13px; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:12px; }
+  .row:first-child { margin-top:0; }
+  .muted { color:var(--muted); }
+  .warn { color:var(--warn); }
+  .grid { display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; margin-top:12px; }
+  .grid img { width:100%; display:block; border-radius:4px; image-rendering:pixelated; }
+  table.review { border-collapse:collapse; width:100%; margin-top:12px; }
+  table.review td, table.review th { padding:6px 10px; border-bottom:1px solid var(--line); text-align:left; }
+  .runs { display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; }
+  .run { border:1px solid var(--line); border-radius:8px; padding:8px; background:var(--panel); }
+  .run .pics img { aspect-ratio:16/9; object-fit:cover; height:auto; }
+  .run .pics { display:grid; grid-template-columns: 1fr 1fr; gap:4px; }
+  .run .pics img { width:100%; display:block; border-radius:3px; image-rendering:pixelated; }
+  .run .meta { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:6px; font-size:13px; }
+  .run .why { display:flex; gap:6px; margin-top:6px; }
+  .run .why input { font-size:13px; padding:4px 6px; }
+  h3.tier { margin:16px 0 8px; font-size:14px; }
+  .modal { position:fixed; inset:0; background:rgba(0,0,0,.75); display:flex; align-items:center; justify-content:center; z-index:5; }
+  .modal .box { width:min(1280px, 94vw); }
+  .modal .row { justify-content:flex-end; }
+  .timer { font-variant-numeric: tabular-nums; }
+  header .tools { margin-left:auto; display:flex; gap:6px; }
+  img.rthumb { width:96px; aspect-ratio:16/9; object-fit:cover; display:block; border-radius:3px; cursor:pointer; image-rendering:pixelated; }
+  table.results td { vertical-align:middle; }
+  .welcome p, .welcome ol { max-width:760px; }
+  @media (max-width: 900px) { .form, .runs { grid-template-columns: 1fr; } .grid { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+<header><h1>Blind rating</h1><span class="progress" id="progress"></span></header>
+<main id="app">Loading…</main>
+<script>
+const ANCHORS = {
+  scene: ["Scene and world", "1 empty background · 4 water, shore and angler present but static · 7 layered scene with ambient motion"],
+  pixel_art: ["Pixel-art quality", "1 flat rectangles or placeholder shapes · 4 recognizable sprites, some inconsistency · 7 deliberate pixel art with readable silhouettes"],
+  cohesion: ["Cohesion and palette", "1 clashing colours or mixed styles · 4 mostly consistent, a few stray elements · 7 unified palette, UI matches the world"],
+  catch: ["Catch presentation", "1 can't tell when a bite happens or what was caught · 4 clear but plain · 7 unmistakable bite cue, a catch with payoff, and a miss that reads clearly"],
+  ui: ["UI and readability", "1 overlapping or unreadable elements · 4 usable but cluttered · 7 clear hierarchy, log and rarity readable at a glance"],
+  rarity: ["Rarity appeal", "1 tiers look the same · 4 tiers labelled but not felt · 7 rarer catches look special, Ancient most of all, in the same style"],
+  feel: ["Cast, bite and catch feel", "1 inputs unclear, no feedback · 4 loop works with minimal feedback · 7 clear anticipation and payoff at each step"],
+  polish: ["Polish", "1 frequent glitches or softlocks · 4 minor glitches · 7 no noticeable glitches in normal play"],
+  keep_playing: ["Would keep playing", "1 would close it immediately · 4 would play a few minutes · 7 would show it to a friend"],
+};
+const TIERS = { 5: "Would show it to a friend", 4: "Good, minor flaws", 3: "Acceptable, plain or uneven", 2: "Poor", 1: "Unreadable or broken on screen" };
+let S, editing = null, reviewing = null;
+let practiceDone = (() => { try { return JSON.parse(localStorage.getItem("practiceDone") || "[]"); } catch { return []; } })();
+const $ = (h) => { const t = document.createElement("template"); t.innerHTML = h.trim(); return t.content.firstChild; };
+const esc = (x) => String(x ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+// Two backends. Run by serve.py, the page talks to its /api. Built by
+// export_static.py, a site.json sits next to the page and ratings live in this
+// browser's localStorage (exported as a file to send back); the same rules apply.
+let SITE;  // site.json in the static build, null when served by serve.py
+const api = async (path, body) => {
+  if (SITE) {
+    try { return staticApi(path, body || {}); } catch (e) { alert(e.message); throw e; }
+  }
+  const r = await fetch(path, body ? { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) } : {});
+  const j = await r.json();
+  if (!r.ok) { alert(j.error || "error"); throw new Error(j.error); }
+  return j;
+};
+const FEEL_AXES = ["feel", "polish", "keep_playing"];
+const blankRatings = () => ({ pass1: {}, overall: {}, pass2: {}, intro_done: {}, locked: { pass1: false, pass2: false } });
+let memRatings = null;  // used only if localStorage is unavailable
+function loadRatings() {
+  try { const s = localStorage.getItem(SITE.key); if (s) return JSON.parse(s); } catch {}
+  return memRatings || blankRatings();
+}
+function saveRatings(r) {
+  memRatings = r;
+  try { localStorage.setItem(SITE.key, JSON.stringify(r)); } catch { showToast("This browser is not saving: export your ratings before leaving"); }
+}
+function staticApi(path, b) {
+  const plan = SITE.plan, r = loadRatings();
+  const phaseAxes = (id) => plan.phases.find((ph) => ph.ids.includes(id))?.axes;
+  const fail = (m) => { throw new Error(m); };
+  if (path === "/api/state") return { plan, ratings: r, axes: { pass2: FEEL_AXES } };
+  if (path === "/api/game") {
+    if (!plan.pass2.includes(b.id) && !plan.practice.includes(b.id)) fail("unknown id");
+    return { url: `games/${b.id}/index.html` };
+  }
+  if (path === "/api/reveal") {
+    if (!(r.locked.pass1 && r.locked.pass2)) fail("lock both passes first");
+    return SITE.reveal;
+  }
+  if (path === "/api/rate") {
+    const p = b.pass, i = b.id;
+    if (r.locked[p]) fail("pass is locked");
+    if (p === "pass2" && !r.locked.pass1) fail("lock pass 1 first");
+    const axes = p === "pass1" ? phaseAxes(i) : plan.pass2.includes(i) ? FEEL_AXES : null;
+    if (!axes) fail("unknown id");
+    const scores = Object.fromEntries(axes.map((k) => [k, Math.trunc(+b.scores[k])]));
+    if (!Object.values(scores).every((v) => v >= 1 && v <= 7)) fail("scores must be 1-7");
+    const prev = r[p][i];
+    r[p][i] = { scores, flag_harness_name: !!b.flag, note: b.note || "",
+                first: prev ? prev.first : { scores }, edits: prev ? (prev.edits || 0) + 1 : 0 };
+  } else if (path === "/api/intro-done") {
+    r.intro_done[b.phase] = true;
+  } else if (path === "/api/tier") {
+    if (r.locked.pass1) fail("pass is locked");
+    if (!plan.overall.some((o) => o.id === b.id)) fail("unknown id");
+    const tier = Math.trunc(+b.tier);
+    if (!(tier >= 1 && tier <= 5)) fail("tier must be 1-5");
+    const prev = r.overall[b.id];
+    r.overall[b.id] = { tier, note: b.note ?? (prev ? prev.note : ""), tier_mismatch: !!b.mismatch,
+                        first_tier: prev ? prev.first_tier : tier, edits: prev ? prev.edits + 1 : 0 };
+  } else if (path === "/api/lock") {
+    const missing = b.pass === "pass1"
+      ? plan.phases.flatMap((ph) => ph.ids).filter((i) => !(i in r.pass1)).concat(plan.overall.filter((o) => !(o.id in r.overall)))
+      : plan.pass2.filter((i) => !(i in r.pass2));
+    if (missing.length) fail(`${missing.length} items not rated`);
+    r.locked[b.pass] = true;
+  } else fail("unknown request");
+  saveRatings(r);
+  return { ok: true };
+}
+function exportRatings() {
+  const r = loadRatings();
+  let name = "";
+  try { name = localStorage.getItem("raterName") || ""; } catch {}
+  name = (prompt("Your name, so the file can be told apart from other raters':", name) ?? "").trim();
+  if (name) localStorageSet("raterName", name);
+  const out = { ...r, rater: name, session: SITE.key, exported: new Date().toISOString() };
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2)], { type: "application/json" }));
+  a.download = `ratings-${(name || "anonymous").replace(/[^\w-]+/g, "_")}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function importRatings(file) {
+  file.text().then((t) => {
+    const j = JSON.parse(t);
+    if (j.session && j.session !== SITE.key) throw new Error("That file is from a different rating session.");
+    if (!j.pass1 || !j.locked) throw new Error("That is not a ratings file.");
+    const n = Object.keys(j.pass1).length + Object.keys(j.overall || {}).length + Object.keys(j.pass2 || {}).length;
+    if (!confirm(`Replace the ratings in this browser with the file's ${n} ratings?`)) return;
+    const { rater, session, exported, ...r } = j;
+    saveRatings({ ...blankRatings(), ...r });
+    editing = reviewing = null;
+    render({ toast: "Ratings imported" });
+  }).catch((e) => alert(e.message));
+}
+const setBar = (t) => { document.getElementById("progress").textContent = t; };
+const scale = (name, n) => `<div class="scale">${Array.from({ length: n }, (_, i) => `<label><input type="radio" name="${name}" value="${i + 1}"><span>${i + 1}</span></label>`).join("")}</div>`;
+// What each axis judges, and where the things it does not judge are rated instead.
+const GUIDE = {
+  scene: ["How much world there is: depth and layers (sky or horizon, distant land, foreground) and things moving on their own. A flat view with a few animated details is about 5; keep 7 for real depth such as a horizon, mountains or islands behind the water.",
+          "how well it is drawn (pixel-art quality); UI (later)."],
+  pixel_art: ["The craft of the sprites and tiles: readable shapes, one consistent pixel size, deliberate shading and detail.",
+              "how much is in the scene (scene and world); whether colours fit together (cohesion)."],
+  cohesion: ["Whether it all looks like one game: a shared palette, and UI drawn in the same style as the world. A UI in a clashing style keeps this near 4 even with a good palette.",
+             "UI layout, padding, overlaps and readability: those are rated in the Catch phase."],
+  catch: ["The moment itself: the bite is obvious, the catch pays off, the miss reads as a miss.",
+          "differences between rarity tiers (Rarities phase); scene art (already rated)."],
+  ui: ["Layout and readability: overlaps, padding, clutter, whether the log and odds read at a glance.",
+       "whether the UI style matches the world (cohesion, already rated)."],
+  rarity: ["How much rarer tiers feel special, Ancient most of all, while staying in the game's style.",
+           "the base quality of the fish art or the scene (already rated)."],
+  feel: ["Responsiveness and the anticipation and payoff you feel while playing.", "visuals (rated in pass 1)."],
+  polish: ["Glitches you hit while playing: stuck states, ignored or double inputs, layout bugs.", "how good it looks."],
+  keep_playing: ["Your overall gut feeling; everything counts here.", ""],
+};
+const guideHtml = (a) => GUIDE[a] ? `<div class="guide">${GUIDE[a][0]}${GUIDE[a][1] ? ` <i>Not here: ${GUIDE[a][1]}</i>` : ""}</div>` : "";
+const HOWTO = `Rate each axis on its own, and count a flaw only on the axis it belongs to. The anchors describe qualities, not ranks: several games can share a score, a 7 need not be the best you have seen, and the in-between numbers are for "better than this anchor, not yet the next".`;
+const axisGuide = (axes) => `<div class="howto">${HOWTO}</div><div class="axguide">${axes.map((a) =>
+  `<div><b>${ANCHORS[a][0]}</b><div class="anchor">${ANCHORS[a][1]}</div>${guideHtml(a)}</div>`).join("")}</div>`;
+const axisRow = (a) => `<div class="ax"><div class="lab"><b>${ANCHORS[a][0]}</b><div class="anchor">${ANCHORS[a][1]}</div>${guideHtml(a)}</div>${scale(a, 7)}</div>`;
+const actions = (saveLabel, flag = true) => `<div class="actions"><input type="text" id="note" placeholder="Note (optional)">
+  ${flag ? `<label title="Exclude from analysis"><input type="checkbox" id="flag"> Shows a harness name</label>` : ""}
+  <button class="primary" id="save">${saveLabel}</button></div>`;
+// Axes in two columns; the save row takes the empty cell after an odd count, or its own row.
+const formHtml = (axes, saveLabel, { flag = true } = {}) => {
+  const cells = axes.map(axisRow);
+  const act = actions(saveLabel, flag);
+  if (cells.length % 2) cells.push(act); else cells.push(`<div class="wide">${act}</div>`);
+  const howto = `<div class="wide howto">${HOWTO}</div>`;
+  return `<div class="form">${howto}${cells.join("")}<div class="wide msg warn" id="msg" hidden></div></div>`;
+};
+const readForm = (root, axes) => {
+  const scores = {};
+  for (const a of axes) { const v = root.querySelector(`input[name=${a}]:checked`); if (!v) return null; scores[a] = +v.value; }
+  return scores;
+};
+const fill = (root, e) => {
+  if (!e) return;
+  for (const [k, v] of Object.entries(e.scores)) { const i = root.querySelector(`input[name=${k}][value="${v}"]`); if (i) i.checked = true; }
+  root.querySelector("#note").value = e.note || "";
+  const f = root.querySelector("#flag"); if (f) f.checked = !!e.flag_harness_name;
+};
+const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
+const phaseOf = (id) => S.plan.phases.find((ph) => ph.ids.includes(id));
+// Tier the axes would suggest: mean of all the run's phase scores, scaled from 1–7 to 1–5.
+const tierFromAxes = (links) => {
+  const xs = links.flatMap((i) => Object.values(S.ratings.pass1[i]?.scores || {}));
+  return xs.length ? 1 + (mean(xs) - 1) * 4 / 6 : null;
+};
+
+// Removing a <video> does not cancel its download; do it explicitly so stalled
+// downloads never use up the browser's few connections to this server.
+function releaseVideos(root) {
+  root.querySelectorAll("video").forEach((v) => { try { v.pause(); v.removeAttribute("src"); v.load(); } catch {} });
+}
+
+// Space and the arrow keys are game controls here, never page scrolling. On a
+// pass-2 game page, a game key pressed while the page has focus is forwarded
+// into the game (and focus moved back into it), so no press is lost.
+const GAME_KEYS = [" ", "Enter", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "PageUp", "PageDown"];
+addEventListener("keydown", (e) => {
+  if (!GAME_KEYS.includes(e.key) || e.target.closest?.("button,input,textarea,select,a")) return;
+  if (e.key !== "Enter") e.preventDefault();
+  const f = document.querySelector("iframe.game");
+  if (!f || e.repeat) return;
+  e.preventDefault();
+  f.contentWindow.postMessage({ hcKey: e.key, code: e.code, keyCode: e.keyCode }, "*");
+  f.focus();
+});
+
+function showToast(text) {
+  document.querySelector(".toast")?.remove();
+  const t = $(`<div class="toast">${esc(text)}</div>`);
+  document.body.append(t);
+  setTimeout(() => t.remove(), 2200);
+}
+
+async function render({ keepScroll = false, toast = "" } = {}) {
+  S = await api("/api/state");
+  const app = document.getElementById("app");
+  const y = window.scrollY;
+  releaseVideos(app);
+  app.innerHTML = "";
+  window.scrollTo(0, 0);
+  if (keepScroll) setTimeout(() => window.scrollTo(0, y), 0);
+  if (toast) showToast(toast);
+  const r = S.ratings, p = S.plan;
+  if (SITE && !r.intro_done?._welcome && !Object.keys(r.pass1).length) return welcome(app);
+  if (!r.locked.pass1) {
+    if (editing?.pass === "pass1") return phaseClip(app, editing.id, true);
+    if (reviewing) return phaseReview(app, reviewing);
+    for (const ph of p.phases) {
+      if (!r.intro_done?.[ph.key]) return phaseIntro(app, ph);
+      const next = ph.ids.find((id) => !(id in r.pass1));
+      if (next) return phaseClip(app, next, false);
+    }
+    return overallBoard(app);
+  }
+  if (!r.locked.pass2) {
+    const practice = p.practice.find((id) => !practiceDone.includes(id));
+    if (practice) return pass2Game(app, practice, true, false);
+    if (editing?.pass === "pass2") return pass2Game(app, editing.id, false, true);
+    const next = p.pass2.find((id) => !(id in r.pass2));
+    if (next) return pass2Game(app, next, false, false);
+    return pass2Review(app);
+  }
+  return results(app);
+}
+
+// ---- Results: shown once both passes are locked, with the mapping revealed
+
+const avg = (xs) => xs.length ? mean(xs) : null;
+const f1 = (x) => x == null ? "–" : x.toFixed(1);
+async function results(app) {
+  setBar("Both passes locked · results");
+  const R = await api("/api/reveal"), r = S.ratings, M = R.mapping;
+  const per = {};  // run -> what this rater gave it
+  const get = (rid) => per[rid] ??= { vis: {}, feel: {}, flagged: false, notes: [] };
+  const repeats = [];
+  for (const [p, store] of [["pass1", "vis"], ["pass2", "feel"]]) {
+    for (const [id, m] of Object.entries(M[p])) {
+      const e = r[p][id]; if (!e) continue;
+      const g = get(m.run);
+      if (e.flag_harness_name) g.flagged = true;
+      if (e.note) g.notes.push(e.note);
+      if (m.repeat) repeats.push([r[p][m.repeat_of], e]);
+      else Object.assign(g[store], e.scores);
+    }
+  }
+  for (const [id, m] of Object.entries(M.overall)) {
+    const e = r.overall[id], g = get(m.run);
+    g.overallId = id;
+    if (e) { g.tier = e.tier; if (e.note) g.notes.push(e.note); }
+  }
+  for (const rid of R.auto_tier1) Object.assign(get(rid), { tier: 1, auto: true });
+  const rows = Object.entries(per).map(([rid, g]) => {
+    const info = R.runs[rid] || {};
+    const fn = info.functional;
+    return { rid, ...g, info, visual: avg(Object.values(g.vis)), feelAvg: avg(Object.values(g.feel)),
+             keep: g.feel.keep_playing ?? null, fn: fn ? fn.passed / fn.total : null,
+             thumb: S.plan.overall.find((o) => o.id === g.overallId)?.thumbs[0] };
+  });
+  // Your tier decides the order; your feel scores, then the visual axes, break ties.
+  const key = (x) => [x.tier ?? 0, x.feelAvg ?? 0, x.visual ?? 0];
+  rows.sort((a, b) => { const ka = key(a), kb = key(b); for (let i = 0; i < 3; i++) if (ka[i] !== kb[i]) return kb[i] - ka[i]; return 0; });
+  const fnText = (x) => x.info.functional ? `${x.info.functional.passed}/${x.info.functional.total}` : "–";
+  const harnesses = {};
+  for (const x of rows) (harnesses[x.info.harness || "?"] ??= []).push(x);
+  const hRows = Object.entries(harnesses).map(([h, xs]) => {
+    const ok = xs.filter((x) => !x.flagged);
+    const col = (k) => f1(avg(ok.map((x) => x[k]).filter((v) => v != null)));
+    return `<tr><td><b>${esc(h)}</b></td><td>${xs.length}</td><td>${col("tier")}</td><td>${col("visual")}</td><td>${col("feelAvg")}</td>
+      <td>${f1(avg(ok.map((x) => x.fn).filter((v) => v != null).map((v) => v * 100)))}%</td></tr>`;
+  }).join("");
+  const mad = repeats.length ? mean(repeats.flatMap(([a, b]) => Object.keys(b.scores).map((k) => Math.abs(a.scores[k] - b.scores[k])))) : null;
+  const card = $(`<div class="card">
+    <div class="row"><b>Your results</b><span class="muted">Every clip and game is now shown with the run it came from. ${SITE ? "Use <b>Export ratings</b> at the top and send the file to whoever shared this page." : "Run <code>python3 rating/report.py</code> for the full report with intervals."}</span></div>
+    <h3 class="tier">By harness</h3>
+    <table class="review"><tr><th>Harness</th><th>Runs</th><th>Mean tier (1–5)</th><th>Visual axes (1–7)</th><th>Feel (1–7)</th><th>Functional checks</th></tr>${hRows}</table>
+    <h3 class="tier">Your ranking of the runs</h3>
+    <div class="howto">Ordered by your overall tier; your feel scores from play, then your visual axis scores, break ties. Functional checks come from the automated evaluator, not from you.${repeats.length ? ` Some clips were shown twice without telling you; on those your scores differed by ${mad.toFixed(2)} points per axis on average.` : ""}</div>
+    <table class="review results"><tr><th>#</th><th></th><th>Run</th><th>Harness</th><th>Prompt</th><th>Tier</th><th>Visual</th><th>Feel</th><th>Keep playing</th><th>Functional</th><th>Your notes</th></tr>
+    ${rows.map((x, i) => `<tr${x.flagged ? ' class="muted" title="You flagged that this run shows a harness name"' : ""}>
+      <td>${i + 1}</td>
+      <td>${x.thumb ? `<img class="rthumb" src="media/thumbs/${x.thumb}" alt="" data-clip="${x.overallId}" title="Play its clip">` : ""}</td>
+      <td><b>${esc(x.rid)}</b>${x.auto ? ' <span class="muted">(broken, tier 1 automatically)</span>' : ""}</td>
+      <td>${esc(x.info.harness || "?")}${x.info.harness_version ? ` <span class="muted">${esc(x.info.harness_version)}</span>` : ""}</td>
+      <td>${x.info.prompt ? `v${x.info.prompt}` : "–"}</td>
+      <td><b>${x.tier ?? "–"}</b></td><td>${f1(x.visual)}</td><td>${f1(x.feelAvg)}</td><td>${x.keep ?? "–"}</td>
+      <td>${fnText(x)}</td><td class="muted">${esc(x.notes.join(" · "))}</td></tr>`).join("")}</table>
+    <div class="howto" style="margin-top:8px">Model for every run: ${esc([...new Set(Object.values(R.runs).map((x) => x.model).filter(Boolean))].join(", ") || "unknown")}. Prompt versions differ in wording only: v4 adds that a catch enters the log only once its reveal is on screen.</div></div>`);
+  app.append(card);
+  card.querySelectorAll("img[data-clip]").forEach((im) => { im.onclick = () => playModal(im.dataset.clip); });
+}
+
+function welcome(app) {
+  setBar("Welcome");
+  const card = $(`<div class="card welcome"><h2>${esc(SITE.title)}</h2>${SITE.intro || ""}
+    <p class="muted">Your ratings are saved in this browser as you go, so you can stop and come back on the same device. <b>Export ratings</b> (top right) saves them to a file; send that file back when you are done, and use <b>Import</b> to carry on in another browser.</p>
+    <div class="row"><button class="primary" id="go">Start</button></div></div>`);
+  app.append(card);
+  card.querySelector("#go").onclick = async () => { await api("/api/intro-done", { phase: "_welcome" }); render(); };
+}
+
+// ---- Pass 1: phases
+
+function phaseIntro(app, ph) {
+  const n = S.plan.phases.indexOf(ph) + 1;
+  setBar(`Pass 1 · ${n}/${S.plan.phases.length} ${ph.title} · overview`);
+  const card = $(`<div class="card">
+    <div class="row"><b>${ph.title}</b><span class="muted">${ph.hint} You'll rate ${ANCHORS[ph.axes[0]] && ph.axes.map((a) => ANCHORS[a][0].toLowerCase()).join(", ")}.
+      First, scan every run's screenshot to get a sense of the range.</span>
+      <button class="primary" id="go">Start ${ph.title.toLowerCase()}</button></div>
+    ${axisGuide(ph.axes)}
+    <div class="grid">${ph.grid.map((g) => `<img src="media/thumbs/${g}" alt="">`).join("")}</div></div>`);
+  app.append(card);
+  card.querySelector("#go").onclick = async () => { await api("/api/intro-done", { phase: ph.key }); render(); };
+}
+
+function phaseClip(app, id, isEdit) {
+  const ph = phaseOf(id), r = S.ratings.pass1;
+  const n = S.plan.phases.indexOf(ph) + 1;
+  const pos = isEdit ? ph.ids.indexOf(id) + 1 : ph.ids.filter((i) => i in r).length + 1;
+  setBar(`Pass 1 · ${n}/${S.plan.phases.length} ${ph.title} · ${pos}/${ph.ids.length} · Clip ${id}${isEdit ? " · editing" : ""}`);
+  const card = $(`<div class="card clip">
+    <video id="v" src="media/clips/${id}.mp4" autoplay muted playsinline controls disablepictureinpicture></video>
+    <div id="form" style="opacity:.4; pointer-events:none">${formHtml(ph.axes, isEdit ? "Save changes" : "Save and next")}</div></div>`);
+  app.append(card);
+  const v = card.querySelector("#v"), form = card.querySelector("#form"), msg = card.querySelector("#msg");
+  const unlock = () => { form.style.opacity = 1; form.style.pointerEvents = "auto"; };
+  if (isEdit) { unlock(); fill(card, r[id]); }
+  v.addEventListener("ended", unlock);
+  v.addEventListener("error", () => { unlock(); msg.hidden = false; msg.textContent = "Clip failed to play."; });
+  card.querySelector("#save").onclick = async () => {
+    const scores = readForm(card, ph.axes);
+    if (!scores) { msg.hidden = false; msg.textContent = "Score every axis."; return; }
+    await api("/api/rate", { pass: "pass1", id, scores, flag: card.querySelector("#flag").checked, note: card.querySelector("#note").value.trim() });
+    editing = null;
+    render();
+  };
+}
+
+function phaseReview(app, key) {
+  const ph = S.plan.phases.find((x) => x.key === key), r = S.ratings.pass1;
+  setBar(`Pass 1 · review ${ph.title.toLowerCase()} scores`);
+  const rows = ph.ids.map((id) => `<tr><td>${id}</td>${ph.axes.map((a) => `<td>${r[id].scores[a]}</td>`).join("")}
+    <td class="muted">${esc(r[id].note)}</td><td><button class="small edit" data-id="${id}">Replay and edit</button></td></tr>`).join("");
+  app.append($(`<div class="card"><div class="row"><b>${ph.title}</b><span class="muted">Reopen any clip to change its scores.</span>
+    <button id="back">Back to the tier board</button></div>
+    ${axisGuide(ph.axes)}
+    <table class="review"><tr><th>Clip</th>${ph.axes.map((a) => `<th>${ANCHORS[a][0]}</th>`).join("")}<th>Note</th><th></th></tr>${rows}</table></div>`));
+  app.querySelectorAll(".edit").forEach((b) => { b.onclick = () => { editing = { pass: "pass1", id: b.dataset.id }; render(); }; });
+  app.querySelector("#back").onclick = () => { reviewing = null; render(); };
+}
+
+function playModal(id) {
+  const m = $(`<div class="modal"><div class="box"><video src="media/clips/${id}.mp4" autoplay muted playsinline controls></video>
+    <div class="row"><button class="primary">Close</button></div></div></div>`);
+  const close = () => { releaseVideos(m); m.remove(); removeEventListener("keydown", esc_); };
+  const esc_ = (e) => { if (e.key === "Escape") close(); };
+  m.querySelector("button").onclick = close;
+  m.onclick = (e) => { if (e.target === m) close(); };
+  addEventListener("keydown", esc_);
+  document.body.append(m);
+}
+
+function runCard(o, tier) {
+  const e = S.ratings.overall[o.id];
+  const el = $(`<div class="run"><div class="pics">${o.thumbs.map((t) => `<img src="media/thumbs/${t}" alt="">`).join("")}</div>
+    <div class="meta"><span>${o.id}</span><button class="small play">Play full clip</button></div>
+    <div class="meta"><span class="muted">Tier</span>${scale("t-" + o.id, 5)}</div>
+    <div class="why" hidden><input type="text" placeholder="Why does the tier differ from the axes?"><button class="small">Save note</button></div>
+    <div class="msg warn" hidden></div></div>`);
+  if (tier) el.querySelector(`input[value="${tier}"]`).checked = true;
+  el.querySelector(".play").onclick = () => playModal(o.id);
+  const why = el.querySelector(".why"), msg = el.querySelector(".msg");
+  const expect = tierFromAxes(o.links);
+  const showWhy = (t) => {
+    const off = expect != null && Math.abs(t - expect) >= 2;
+    why.hidden = msg.hidden = !off;
+    if (off) {
+      msg.textContent = `Tier ${t} is far from what this run's axis scores suggest (about ${expect.toFixed(1)}). A few words on why help; optional.`;
+      why.querySelector("input").value = e?.note || "";
+    }
+    return off;
+  };
+  if (tier && !e?.note) showWhy(tier);
+  el.querySelectorAll(".scale input").forEach((inp) => {
+    inp.onchange = async () => {
+      const t = +inp.value;
+      const off = expect != null && Math.abs(t - expect) >= 2;
+      await api("/api/tier", { id: o.id, tier: t, mismatch: off });
+      if (off) { showWhy(t); why.querySelector("input").focus(); } else render({ keepScroll: true, toast: `${o.id} placed in tier ${t}` });
+    };
+  });
+  why.querySelector("button").onclick = async () => {
+    const t = +el.querySelector(".scale input:checked").value;
+    await api("/api/tier", { id: o.id, tier: t, mismatch: true, note: why.querySelector("input").value.trim() });
+    render({ keepScroll: true, toast: `${o.id} placed in tier ${t}` });
+  };
+  return el;
+}
+
+function overallBoard(app) {
+  const r = S.ratings.overall, all = S.plan.overall;
+  const placed = all.filter((o) => o.id in r);
+  setBar(`Pass 1 · overall tier · ${placed.length}/${all.length} placed`);
+  const head = $(`<div class="card"><div class="row"><b>Overall tier</b>
+    <span class="muted">Give each run its overall verdict. Use the thumbnails, or play its full clip. Review phase scores:</span>
+    ${S.plan.phases.map((ph) => `<button class="small rev" data-k="${ph.key}">${ph.title}</button>`).join("")}
+    <button class="primary" id="lock" ${placed.length < all.length ? "disabled" : ""}>Lock pass 1</button></div>
+    <div class="row muted" style="font-size:13px">${[5, 4, 3, 2, 1].map((t) => `${t} ${TIERS[t].toLowerCase()}`).join(" · ")}</div>
+    <div class="howto" style="margin-top:6px">The tier is your overall verdict on the run, not the average of its axis scores. Here everything counts together: scene, art, UI glitches, the catch and the rarities. One fatal flaw (an unreadable screen, a broken layout) can pull a good-looking run down, and charm the axes missed can lift a plain one. Several runs can share a tier; if a tier is far from the run's axis scores, a short note on why helps.</div></div>`);
+  app.append(head);
+  head.querySelectorAll(".rev").forEach((b) => { b.onclick = () => { reviewing = b.dataset.k; render(); }; });
+  head.querySelector("#lock").onclick = async () => { if (confirm("Lock pass 1 scores and tiers? This cannot be undone.")) { await api("/api/lock", { pass: "pass1" }); render(); } };
+  const todo = all.filter((o) => !(o.id in r));
+  if (todo.length) {
+    app.append($(`<h3 class="tier">To place (${todo.length})</h3>`));
+    const g = $(`<div class="runs"></div>`);
+    todo.forEach((o) => g.append(runCard(o, null)));
+    app.append(g);
+  }
+  for (const t of [5, 4, 3, 2, 1]) {
+    const here = placed.filter((o) => r[o.id].tier === t);
+    if (!here.length) continue;
+    app.append($(`<h3 class="tier">${t} · ${TIERS[t]} (${here.length})</h3>`));
+    const g = $(`<div class="runs"></div>`);
+    here.forEach((o) => g.append(runCard(o, t)));
+    app.append(g);
+  }
+}
+
+// ---- Pass 2: play
+
+async function pass2Game(app, id, practice, isEdit) {
+  const { url } = await api("/api/game", { id });
+  const r = S.ratings.pass2, p = S.plan.pass2;
+  const pos = isEdit ? p.indexOf(id) + 1 : Object.keys(r).length + 1;
+  setBar(practice ? `Pass 2 · practice game (not scored)` : `Pass 2 · feel from play · ${pos}/${p.length} · Game ${id}${isEdit ? " · editing" : ""}`);
+  const card = $(`<div class="card">
+    <div class="row"><span class="muted">${practice ? "Not part of the study: settle what the anchors mean." : "Play about a minute: a few catches and a miss. The game has the keyboard when it has a blue outline; keys pressed elsewhere on the page are passed to it."}</span>
+      <span class="timer muted" id="timer">0:00</span></div>
+    <iframe class="game" src="${url}?${Date.now()}" title="Game" allow="autoplay" style="margin-top:8px"></iframe>
+    ${formHtml(S.axes.pass2, practice ? "Done with practice game" : isEdit ? "Save changes" : "Save and next", { flag: !practice })}</div>`);
+  app.append(card);
+  const frame = card.querySelector("iframe.game");
+  frame.addEventListener("load", () => frame.focus());
+  if (isEdit) fill(card, r[id]);
+  const t0 = Date.now();
+  const tick = setInterval(() => {
+    const el = card.querySelector("#timer");
+    if (!el.isConnected) return clearInterval(tick);
+    const s = Math.floor((Date.now() - t0) / 1000);
+    el.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  }, 500);
+  card.querySelector("#save").onclick = async () => {
+    if (practice) {
+      practiceDone.push(id);
+      localStorageSet(SITE ? SITE.key + ":practice" : "practiceDone", JSON.stringify(practiceDone));
+      return render();
+    }
+    const scores = readForm(card, S.axes.pass2);
+    const msg = card.querySelector("#msg");
+    if (!scores) { msg.hidden = false; msg.textContent = "Score every axis."; return; }
+    await api("/api/rate", { pass: "pass2", id, scores, flag: card.querySelector("#flag").checked, note: card.querySelector("#note").value.trim() });
+    editing = null;
+    render();
+  };
+}
+
+function pass2Review(app) {
+  const r = S.ratings.pass2;
+  setBar(`Pass 2 · review · ${S.plan.pass2.length} games rated`);
+  const rows = S.plan.pass2.map((id) => `<tr><td>${id}</td>${S.axes.pass2.map((a) => `<td>${r[id].scores[a]}</td>`).join("")}
+    <td class="muted">${esc(r[id].note)}</td><td><button class="small edit" data-id="${id}">Replay and edit</button></td></tr>`).join("");
+  app.append($(`<div class="card"><div class="row"><b>Review the feel scores</b>
+    <span class="muted">Reopen any game to change its scores, then lock pass 2. After locking, run <code>python3 rating/report.py</code>.</span>
+    <button class="primary" id="lock">Lock pass 2</button></div>
+    ${axisGuide(S.axes.pass2)}
+    <table class="review"><tr><th>Game</th>${S.axes.pass2.map((a) => `<th>${ANCHORS[a][0]}</th>`).join("")}<th>Note</th><th></th></tr>${rows}</table></div>`));
+  app.querySelectorAll(".edit").forEach((b) => { b.onclick = () => { editing = { pass: "pass2", id: b.dataset.id }; render(); }; });
+  app.querySelector("#lock").onclick = async () => { if (confirm("Lock pass 2 scores? This cannot be undone.")) { await api("/api/lock", { pass: "pass2" }); render(); } };
+}
+
+function localStorageSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
+
+(async () => {
+  try { const res = await fetch("site.json", { cache: "no-store" }); if (res.ok) SITE = await res.json(); } catch {}
+  if (SITE) {
+    document.title = SITE.title || document.title;
+    document.querySelector("header h1").textContent = SITE.title || "Blind rating";
+    const tools = $(`<span class="tools"><button class="small" id="exp" title="Download your ratings as a file">Export ratings</button>
+      <button class="small" id="imp" title="Load ratings from a file you exported">Import</button><input type="file" accept=".json,application/json" hidden></span>`);
+    document.querySelector("header").append(tools);
+    tools.querySelector("#exp").onclick = exportRatings;
+    const file = tools.querySelector("input");
+    tools.querySelector("#imp").onclick = () => file.click();
+    file.onchange = () => { if (file.files[0]) importRatings(file.files[0]); file.value = ""; };
+    // Practice progress belongs to this session too.
+    try { practiceDone = JSON.parse(localStorage.getItem(SITE.key + ":practice") || "[]"); } catch {}
+  }
+  render();
+})();
+</script>
+</body>
+</html>

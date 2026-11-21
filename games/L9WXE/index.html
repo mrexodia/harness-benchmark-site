@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><script>addEventListener("keydown",function(e){var k=e.key;
+if(k===" "||k==="Spacebar"||k==="ArrowUp"||k==="ArrowDown"||k==="PageUp"||k==="PageDown"){
+var t=e.target;if(!(t&&t.closest&&t.closest("button,input,textarea,select,a,[contenteditable]")))e.preventDefault();}},false);
+addEventListener("message",function(m){var d=m.data;if(!d||!d.hcKey)return;
+var o={key:d.hcKey,code:d.code,keyCode:d.keyCode,which:d.keyCode,bubbles:true,cancelable:true};
+var t=document.activeElement||document.body;t.dispatchEvent(new KeyboardEvent("keydown",o));t.dispatchEvent(new KeyboardEvent("keyup",o));});</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tidepool Cove — a tiny fishing game</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="stage">
+  <canvas id="game" width="320" height="180"></canvas>
+
+  <div id="ui">
+    <div id="legend" class="panel">
+      <div class="panel-title">Catch odds</div>
+      <div id="legendGrid"></div>
+    </div>
+
+    <div id="log" class="panel">
+      <div class="panel-title">Catch log</div>
+      <ol id="logList"><li class="empty">nothing yet…</li></ol>
+    </div>
+
+    <div id="instruction" class="panel">
+      Cast &rarr; wait for the bite &rarr; reel in when it strikes!
+    </div>
+
+    <div id="bottom">
+      <div id="prompt">Press SPACE or tap CAST to fish</div>
+      <div id="bitebar"><div id="bitefill"></div></div>
+      <button id="actionBtn" type="button">CAST</button>
+    </div>
+
+    <div id="reveal" class="tier-common hidden">
+      <div class="reveal-card">
+        <div class="reveal-ribbon"><span id="revealRarity">Common</span></div>
+        <canvas id="revealFish" width="96" height="64"></canvas>
+        <div class="reveal-name" id="revealName">Fish</div>
+        <div class="reveal-hint">Press SPACE to continue</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>

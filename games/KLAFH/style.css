@@ -1,0 +1,86 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #0b0f14;
+}
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+}
+#fit {
+  position: relative;
+  width: 1280px;
+  height: 720px;
+}
+#stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1280px;
+  height: 720px;
+  transform-origin: top left;
+  overflow: hidden;
+  background: #143b52;
+  box-shadow: 0 0 0 1px #000, 0 18px 60px rgba(0,0,0,0.7);
+  cursor: default;
+}
+canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+}
+#scene {
+  width: 1280px;
+  height: 720px;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
+}
+#ui {
+  width: 1280px;
+  height: 720px;
+  pointer-events: none;
+}
+#actionBtn {
+  position: absolute;
+  left: 26px;
+  top: 642px;
+  width: 240px;
+  height: 58px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #fff8ec;
+  background: linear-gradient(#e0803f, #b8471f);
+  box-shadow: inset 0 2px 0 rgba(255,220,180,0.55), inset 0 -4px 0 rgba(0,0,0,0.28), 0 5px 0 #6d2a12, 0 8px 14px rgba(0,0,0,0.4);
+  text-shadow: 0 2px 0 rgba(0,0,0,0.35);
+  transition: transform 0.05s, filter 0.1s;
+}
+#actionBtn:hover { filter: brightness(1.08); }
+#actionBtn:active { transform: translateY(3px); box-shadow: inset 0 2px 0 rgba(255,220,180,0.5), inset 0 -4px 0 rgba(0,0,0,0.28), 0 2px 0 #6d2a12; }
+#actionBtn:focus-visible { outline: 3px solid #ffe08a; outline-offset: 3px; }
+#actionBtn.waiting {
+  background: linear-gradient(#5c6f7a, #3d4d56);
+  box-shadow: inset 0 2px 0 rgba(200,220,230,0.3), inset 0 -4px 0 rgba(0,0,0,0.28), 0 5px 0 #263138, 0 8px 14px rgba(0,0,0,0.4);
+  cursor: default;
+}
+#actionBtn.bite {
+  background: linear-gradient(#ff7a4d, #d0301c);
+  box-shadow: inset 0 2px 0 rgba(255,220,180,0.6), inset 0 -4px 0 rgba(0,0,0,0.3), 0 5px 0 #7a1a0c, 0 8px 16px rgba(255,90,40,0.45);
+  animation: btnpulse 0.32s infinite alternate;
+}
+@keyframes btnpulse { from { filter: brightness(1); } to { filter: brightness(1.35); } }
+#actionBtn.reveal {
+  background: linear-gradient(#e0b14f, #b07d18);
+  box-shadow: inset 0 2px 0 rgba(255,240,200,0.6), inset 0 -4px 0 rgba(0,0,0,0.28), 0 5px 0 #6d4a10, 0 8px 14px rgba(0,0,0,0.4);
+}

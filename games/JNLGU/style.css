@@ -1,0 +1,26 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  background: #070b10;
+  overflow: hidden;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#game {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background: #070b10;
+  touch-action: none;
+  cursor: pointer;
+  box-shadow: 0 0 0 1px #1b2632, 0 18px 60px rgba(0, 0, 0, 0.7);
+}

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><script>addEventListener("keydown",function(e){var k=e.key;
+if(k===" "||k==="Spacebar"||k==="ArrowUp"||k==="ArrowDown"||k==="PageUp"||k==="PageDown"){
+var t=e.target;if(!(t&&t.closest&&t.closest("button,input,textarea,select,a,[contenteditable]")))e.preventDefault();}},false);
+addEventListener("message",function(m){var d=m.data;if(!d||!d.hcKey)return;
+var o={key:d.hcKey,code:d.code,keyCode:d.keyCode,which:d.keyCode,bubbles:true,cancelable:true};
+var t=document.activeElement||document.body;t.dispatchEvent(new KeyboardEvent("keydown",o));t.dispatchEvent(new KeyboardEvent("keyup",o));});</script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tidepool Landing</title>
+<style>
+  :root { background: #0d1b24; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0d1b24;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #stage {
+    position: relative;
+    width: 1280px;
+    height: 720px;
+    max-width: 100vw;
+    max-height: 100vh;
+    aspect-ratio: 16 / 9;
+    box-shadow: 0 0 0 2px #12242e, 0 24px 60px rgba(0,0,0,0.6);
+    background: #0d1b24;
+  }
+  #game {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    cursor: default;
+    touch-action: manipulation;
+  }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <canvas id="game" width="1280" height="720" aria-label="Tidepool Landing fishing game"></canvas>
+  </div>
+  <script src="js/font.js"></script>
+  <script src="js/art.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>

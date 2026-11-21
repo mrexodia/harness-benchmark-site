@@ -1,0 +1,103 @@
+/* Tidehollow Pier — page chrome */
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #070c10;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+#stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1280px;
+  height: 720px;
+  transform: translate(-50%, -50%);
+  transform-origin: center center;
+  overflow: hidden;
+  background: #0a121a;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+#game {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1280px;
+  height: 720px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: block;
+}
+
+#ui {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1280px;
+  height: 720px;
+  pointer-events: none;
+  display: block;
+}
+
+#castBtn {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 26px;
+  font: 800 22px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: 1px;
+  color: #3a2410;
+  background: linear-gradient(#f4bd68, #d98a2b);
+  border: 3px solid #6f4a28;
+  border-radius: 12px;
+  box-shadow: 0 5px 0 #5e3d26, 0 8px 18px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  transition: background 0.12s, box-shadow 0.08s, transform 0.08s;
+}
+
+#castBtn .key {
+  font: 800 13px/1 system-ui, sans-serif;
+  letter-spacing: 1px;
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: rgba(58, 36, 16, 0.22);
+  color: #4a2f12;
+}
+
+#castBtn:hover { background: linear-gradient(#ffcf7d, #e09632); }
+
+#castBtn:active {
+  transform: translateX(-50%) translateY(4px);
+  box-shadow: 0 1px 0 #5e3d26, 0 3px 8px rgba(0, 0, 0, 0.45);
+}
+
+#castBtn.bite {
+  color: #3a0d0d;
+  background: linear-gradient(#ff8a6a, #e8402f);
+  border-color: #7a1f14;
+  box-shadow: 0 5px 0 #6a1a10, 0 0 24px rgba(255, 110, 80, 0.75);
+  animation: btnpulse 0.32s ease-in-out infinite alternate;
+}
+
+#castBtn.bite .key { background: rgba(58, 10, 10, 0.28); color: #5a1410; }
+
+@keyframes btnpulse {
+  from { transform: translateX(-50%) scale(1); }
+  to   { transform: translateX(-50%) scale(1.06); }
+}
+
+#castBtn:focus-visible { outline: 3px solid #ffe9a8; outline-offset: 3px; }

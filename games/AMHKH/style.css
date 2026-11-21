@@ -1,0 +1,73 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background: #0a1016;
+  overflow: hidden;
+  font-family: "Courier New", Courier, monospace;
+}
+
+#stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 100vw;
+  height: 56.25vw;      /* 16:9 */
+  max-width: 177.78vh;  /* 16:9 from height */
+  max-height: 100vh;
+  background: #0a1016;
+  box-shadow: 0 0 0 2px #1a2630, 0 12px 40px rgba(0,0,0,.6);
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+#game {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+#castBtn {
+  position: absolute;
+  left: 50%;
+  bottom: 2.2%;
+  transform: translateX(-50%);
+  z-index: 5;
+  font-family: "Courier New", Courier, monospace;
+  font-weight: 700;
+  font-size: clamp(12px, 1.45vw, 20px);
+  letter-spacing: 0.14em;
+  color: #2a1c0c;
+  background: linear-gradient(#ffe9a8, #f2c14e 55%, #d99a2b);
+  border: 0;
+  border-bottom: 4px solid #8a5a1e;
+  border-radius: 6px;
+  padding: 0.55em 1.5em 0.6em;
+  cursor: pointer;
+  box-shadow: 0 3px 0 rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.55);
+  transition: filter .12s, transform .06s;
+  -webkit-tap-highlight-color: transparent;
+}
+#castBtn:hover { filter: brightness(1.07); }
+#castBtn:active { transform: translateX(-50%) translateY(2px); border-bottom-width: 2px; }
+#castBtn:disabled {
+  filter: grayscale(.85) brightness(.72);
+  cursor: default;
+  color: #3a3226;
+}
+#castBtn.hot {
+  animation: pulseBtn .42s ease-in-out infinite alternate;
+  background: linear-gradient(#ffd0d0, #ff6b5a 55%, #d63b2b);
+  color: #fff;
+  border-bottom-color: #7a1a10;
+  text-shadow: 0 1px 0 rgba(0,0,0,.4);
+}
+@keyframes pulseBtn {
+  from { box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 0 rgba(255,120,90,0), inset 0 2px 0 rgba(255,255,255,.5); }
+  to   { box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 22px rgba(255,120,90,.95), inset 0 2px 0 rgba(255,255,255,.7); }
+}

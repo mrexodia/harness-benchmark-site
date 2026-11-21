@@ -1,0 +1,43 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #0b0a10;
+  overflow: hidden;
+  font-family: monospace;
+}
+
+#stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1280px;
+  height: 720px;
+  transform: translate(-50%, -50%);
+  transform-origin: center center;
+  background: #000;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.8);
+}
+
+canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+#world {
+  width: 1280px;
+  height: 720px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+#ui {
+  width: 1280px;
+  height: 720px;
+  z-index: 2;
+  touch-action: none;
+}

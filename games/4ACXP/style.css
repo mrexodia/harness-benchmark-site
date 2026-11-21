@@ -1,0 +1,42 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #07090d;
+}
+
+#wrap {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#stage {
+  position: relative;
+  width: 1280px;
+  height: 720px;
+  transform-origin: center center;
+  image-rendering: pixelated;
+  box-shadow: 0 0 0 2px #0b0f14, 0 24px 80px rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+}
+
+#scene {
+  position: absolute;
+  inset: 0;
+  width: 1280px;
+  height: 720px;
+  image-rendering: pixelated;
+}
+
+#ui {
+  position: absolute;
+  inset: 0;
+  width: 1280px;
+  height: 720px;
+  pointer-events: none;
+}

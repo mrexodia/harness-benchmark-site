@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head><script>addEventListener("keydown",function(e){var k=e.key;
+if(k===" "||k==="Spacebar"||k==="ArrowUp"||k==="ArrowDown"||k==="PageUp"||k==="PageDown"){
+var t=e.target;if(!(t&&t.closest&&t.closest("button,input,textarea,select,a,[contenteditable]")))e.preventDefault();}},false);
+addEventListener("message",function(m){var d=m.data;if(!d||!d.hcKey)return;
+var o={key:d.hcKey,code:d.code,keyCode:d.keyCode,which:d.keyCode,bubbles:true,cancelable:true};
+var t=document.activeElement||document.body;t.dispatchEvent(new KeyboardEvent("keydown",o));t.dispatchEvent(new KeyboardEvent("keyup",o));});</script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tidebloom Cove</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%; background: #0b1016;
+    overflow: hidden;
+  }
+  body {
+    display: flex; align-items: center; justify-content: center;
+    font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  #stage {
+    position: relative;
+    width: min(100vw, 177.7778vh);
+    height: min(56.25vw, 100vh);
+    box-shadow: 0 0 0 2px #10161d, 0 24px 80px rgba(0,0,0,.7);
+    background: #16323d;
+    overflow: hidden;
+  }
+  #stage canvas {
+    position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+    display: block;
+  }
+  #scene { image-rendering: pixelated; image-rendering: crisp-edges; }
+  #ui { image-rendering: auto; }
+  #ui { cursor: pointer; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <canvas id="scene" width="320" height="180"></canvas>
+    <canvas id="ui" width="1280" height="720"></canvas>
+  </div>
+
+  <script src="js/util.js"></script>
+  <script src="js/fish.js"></script>
+  <script src="js/scene.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>

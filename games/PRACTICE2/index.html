@@ -1,0 +1,17 @@
+<!doctype html>
+<html><head><script>addEventListener("keydown",function(e){var k=e.key;
+if(k===" "||k==="Spacebar"||k==="ArrowUp"||k==="ArrowDown"||k==="PageUp"||k==="PageDown"){
+var t=e.target;if(!(t&&t.closest&&t.closest("button,input,textarea,select,a,[contenteditable]")))e.preventDefault();}},false);
+addEventListener("message",function(m){var d=m.data;if(!d||!d.hcKey)return;
+var o={key:d.hcKey,code:d.code,keyCode:d.keyCode,which:d.keyCode,bubbles:true,cancelable:true};
+var t=document.activeElement||document.body;t.dispatchEvent(new KeyboardEvent("keydown",o));t.dispatchEvent(new KeyboardEvent("keyup",o));});</script><meta charset="utf-8"><title>Reference fishing</title>
+<style>
+html,body{margin:0;background:#111;color:#eee;font:13px sans-serif;overflow:hidden}
+#scene{display:block;width:1280px;height:720px;image-rendering:pixelated}
+#ui{position:absolute;right:8px;top:8px;width:220px;background:#0008;padding:6px}
+#ui ul{margin:4px 0;padding-left:16px}#reveal{position:absolute;left:0;right:0;top:40px;text-align:center;font-size:22px}
+</style></head><body>
+<canvas id="scene" width="320" height="180"></canvas>
+<div id="ui">Space or button to cast / reel<br><button id="act">Cast</button>
+<div id="legend"></div><ul id="log"></ul></div><div id="reveal"></div>
+<script src="game.js"></script></body></html>
