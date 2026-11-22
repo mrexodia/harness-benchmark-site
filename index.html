@@ -17,7 +17,7 @@
   .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px; margin-bottom:16px; }
   .card.clip { padding:4px 12px 12px; }
   /* Clip video: as large as fits below the top bar, so the whole frame is visible without scrolling. */
-  .card.clip video { width:min(1280px, 100%, calc((100vh - 60px) * 16 / 9)); margin:0 auto; }
+  .card.clip video { width:min(1280px, 100%, calc((100vh - 100px) * 16 / 9)); margin:0 auto; }
   video, iframe { display:block; width:1280px; max-width:100%; aspect-ratio:16/9; background:#000; border:0; border-radius:4px; }
   iframe { height:720px; max-width:none; }
   .form { display:grid; grid-template-columns: 1fr 1fr; gap:10px 32px; align-items:center; margin-top:12px; }
@@ -69,6 +69,22 @@
   .modal .row { justify-content:flex-end; }
   .timer { font-variant-numeric: tabular-nums; }
   header .tools { margin-left:auto; display:flex; gap:6px; }
+  header { flex-wrap:wrap; row-gap:6px; }
+  nav.steps { flex-basis:100%; display:flex; gap:4px; flex-wrap:wrap; align-items:center; font-size:13px; }
+  nav.steps .step { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:999px; border:1px solid var(--line); background:var(--bg); color:var(--muted); }
+  nav.steps .step.done { color:var(--ink); }
+  nav.steps .step.done::before { content:"✓"; color:var(--accent); font-weight:700; }
+  nav.steps button.step { font:inherit; cursor:pointer; }
+  nav.steps button.step:hover { border-color:var(--accent); }
+  nav.steps .step.here { border-color:var(--accent); color:var(--accent); font-weight:600; box-shadow: inset 0 0 0 1px var(--accent); }
+  nav.steps .step.locked { opacity:.55; }
+  nav.steps .sep { color:var(--line); }
+  table.results tr.pick { cursor:pointer; }
+  table.results tr.pick:hover td { background:var(--bg); }
+  .clips3 { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-top:10px; }
+  .clips3 video { width:100%; height:auto; }
+  .clips3 .cap { font-size:13px; margin-top:4px; }
+  @media (max-width: 900px) { .clips3 { grid-template-columns:1fr; } }
   img.rthumb { width:96px; aspect-ratio:16/9; object-fit:cover; display:block; border-radius:3px; cursor:pointer; image-rendering:pixelated; }
   table.results td { vertical-align:middle; }
   .welcome p, .welcome ol { max-width:760px; }
@@ -76,7 +92,7 @@
 </style>
 </head>
 <body>
-<header><h1>Blind rating</h1><span class="progress" id="progress"></span></header>
+<header><h1>Blind rating</h1><span class="progress" id="progress"></span><nav class="steps" id="steps" aria-label="Rating steps"></nav></header>
 <main id="app">Loading…</main>
 <script>
 const ANCHORS = {
@@ -91,7 +107,7 @@ const ANCHORS = {
   keep_playing: ["Would keep playing", "1 would close it immediately · 4 would play a few minutes · 7 would show it to a friend"],
 };
 const TIERS = { 5: "Would show it to a friend", 4: "Good, minor flaws", 3: "Acceptable, plain or uneven", 2: "Poor", 1: "Unreadable or broken on screen" };
-let S, editing = null, reviewing = null;
+let S, editing = null, reviewing = null, viewRun = null;
 let practiceDone = (() => { try { return JSON.parse(localStorage.getItem("practiceDone") || "[]"); } catch { return []; } })();
 const $ = (h) => { const t = document.createElement("template"); t.innerHTML = h.trim(); return t.content.firstChild; };
 const esc = (x) => String(x ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -281,6 +297,7 @@ async function render({ keepScroll = false, toast = "" } = {}) {
   if (keepScroll) setTimeout(() => window.scrollTo(0, y), 0);
   if (toast) showToast(toast);
   const r = S.ratings, p = S.plan;
+  drawSteps();
   if (SITE && !r.intro_done?._welcome && !Object.keys(r.pass1).length) return welcome(app);
   if (!r.locked.pass1) {
     if (editing?.pass === "pass1") return phaseClip(app, editing.id, true);
@@ -296,11 +313,57 @@ async function render({ keepScroll = false, toast = "" } = {}) {
     const practice = p.practice.find((id) => !practiceDone.includes(id));
     if (practice) return pass2Game(app, practice, true, false);
     if (editing?.pass === "pass2") return pass2Game(app, editing.id, false, true);
+    if (reviewing === "pass2") return pass2Review(app);
     const next = p.pass2.find((id) => !(id in r.pass2));
     if (next) return pass2Game(app, next, false, false);
     return pass2Review(app);
   }
   return results(app);
+}
+
+// ---- Step bar: where you are, and a way back to anything already rated.
+// Only finished steps of a pass that is still open can be reopened; steps not
+// reached yet stay closed, so every run is still seen one aspect at a time and
+// play cannot change the locked visual scores.
+function stepState() {
+  const r = S.ratings, p = S.plan;
+  const phaseDone = (ph) => !!r.intro_done?.[ph.key] && ph.ids.every((id) => id in r.pass1);
+  const firstOpen = p.phases.find((ph) => !phaseDone(ph));
+  const allPhases = !firstOpen;
+  const boardDone = p.overall.every((o) => o.id in r.overall);
+  const playDone = p.pass2.every((id) => id in r.pass2);
+  const anyPlayed = p.pass2.some((id) => id in r.pass2);
+  const both = r.locked.pass1 && r.locked.pass2;
+  // What is on screen now.
+  let here;
+  if (!r.locked.pass1) here = reviewing || (allPhases ? "overall" : firstOpen.key);
+  else if (!r.locked.pass2) here = "play";
+  else here = "results";
+  const steps = p.phases.map((ph) => ({
+    key: ph.key, label: ph.title, done: phaseDone(ph) || r.locked.pass1,
+    open: !r.locked.pass1 && phaseDone(ph), go: () => { editing = null; reviewing = ph.key; render(); } }));
+  steps.push({ key: "overall", label: "Overall tiers", done: r.locked.pass1 || (allPhases && boardDone),
+    open: !r.locked.pass1 && allPhases, go: () => { editing = null; reviewing = null; render(); } });
+  steps.push({ sep: true });
+  steps.push({ key: "play", label: "Play", done: r.locked.pass2 || playDone,
+    open: r.locked.pass1 && !r.locked.pass2 && anyPlayed, go: () => { editing = null; reviewing = "pass2"; render(); } });
+  steps.push({ key: "results", label: "Results", done: false, open: both, go: () => { viewRun = null; render(); } });
+  return { steps, here };
+}
+function drawSteps() {
+  const nav = document.getElementById("steps");
+  if (SITE && !S.ratings.intro_done?._welcome && !Object.keys(S.ratings.pass1).length) { nav.innerHTML = ""; return; }
+  const { steps, here } = stepState();
+  nav.innerHTML = "";
+  for (const st of steps) {
+    if (st.sep) { nav.append($(`<span class="sep">·</span>`)); continue; }
+    const cls = `step${st.done ? " done" : ""}${st.key === here ? " here" : ""}${!st.open && !st.done && st.key !== here ? " locked" : ""}`;
+    const title = st.open ? (st.key === "play" ? "Review and edit your play scores" : st.key === "results" ? "Your ranking" : "Review and edit these scores")
+      : st.done ? "Locked" : st.key === here ? "You are here" : "Not reached yet";
+    const el = st.open ? $(`<button class="${cls}" title="${title}">${st.label}</button>`) : $(`<span class="${cls}" title="${title}">${st.label}</span>`);
+    if (st.open) el.onclick = st.go;
+    nav.append(el);
+  }
 }
 
 // ---- Results: shown once both passes are locked, with the mapping revealed
@@ -339,6 +402,7 @@ async function results(app) {
   // Your tier decides the order; your feel scores, then the visual axes, break ties.
   const key = (x) => [x.tier ?? 0, x.feelAvg ?? 0, x.visual ?? 0];
   rows.sort((a, b) => { const ka = key(a), kb = key(b); for (let i = 0; i < 3; i++) if (ka[i] !== kb[i]) return kb[i] - ka[i]; return 0; });
+  if (viewRun) { const i = rows.findIndex((x) => x.rid === viewRun); if (i >= 0) return runDetail(app, R, rows, i); viewRun = null; }
   const fnText = (x) => x.info.functional ? `${x.info.functional.passed}/${x.info.functional.total}` : "–";
   const harnesses = {};
   for (const x of rows) (harnesses[x.info.harness || "?"] ??= []).push(x);
@@ -356,9 +420,9 @@ async function results(app) {
     <h3 class="tier">Your ranking of the runs</h3>
     <div class="howto">Ordered by your overall tier; your feel scores from play, then your visual axis scores, break ties. Functional checks come from the automated evaluator, not from you.${repeats.length ? ` Some clips were shown twice without telling you; on those your scores differed by ${mad.toFixed(2)} points per axis on average.` : ""}</div>
     <table class="review results"><tr><th>#</th><th></th><th>Run</th><th>Harness</th><th>Prompt</th><th>Tier</th><th>Visual</th><th>Feel</th><th>Keep playing</th><th>Functional</th><th>Your notes</th></tr>
-    ${rows.map((x, i) => `<tr${x.flagged ? ' class="muted" title="You flagged that this run shows a harness name"' : ""}>
+    ${rows.map((x, i) => `<tr class="pick${x.flagged ? " muted" : ""}" data-rid="${esc(x.rid)}" title="${x.flagged ? "You flagged that this run shows a harness name. " : ""}Open this run">
       <td>${i + 1}</td>
-      <td>${x.thumb ? `<img class="rthumb" src="media/thumbs/${x.thumb}" alt="" data-clip="${x.overallId}" title="Play its clip">` : ""}</td>
+      <td>${x.thumb ? `<img class="rthumb" src="media/thumbs/${x.thumb}" alt="">` : ""}</td>
       <td><b>${esc(x.rid)}</b>${x.auto ? ' <span class="muted">(broken, tier 1 automatically)</span>' : ""}</td>
       <td>${esc(x.info.harness || "?")}${x.info.harness_version ? ` <span class="muted">${esc(x.info.harness_version)}</span>` : ""}</td>
       <td>${x.info.prompt ? `v${x.info.prompt}` : "–"}</td>
@@ -366,7 +430,43 @@ async function results(app) {
       <td>${fnText(x)}</td><td class="muted">${esc(x.notes.join(" · "))}</td></tr>`).join("")}</table>
     <div class="howto" style="margin-top:8px">Model for every run: ${esc([...new Set(Object.values(R.runs).map((x) => x.model).filter(Boolean))].join(", ") || "unknown")}. Prompt versions differ in wording only: v4 adds that a catch enters the log only once its reveal is on screen.</div></div>`);
   app.append(card);
-  card.querySelectorAll("img[data-clip]").forEach((im) => { im.onclick = () => playModal(im.dataset.clip); });
+  card.querySelectorAll("tr.pick").forEach((tr) => { tr.onclick = () => { viewRun = tr.dataset.rid; render(); }; });
+}
+
+// One run, after the reveal: its clips, its game, and what you gave it.
+async function runDetail(app, R, rows, i) {
+  const x = rows[i], M = R.mapping, r = S.ratings;
+  setBar(`Results · ${i + 1}/${rows.length} · ${x.rid}`);
+  const order = S.plan.phases.map((ph) => ph.key);
+  const clips = Object.entries(M.pass1).filter(([, m]) => m.run === x.rid && !m.repeat)
+    .sort((a, b) => order.indexOf(a[1].phase) - order.indexOf(b[1].phase));
+  const game = Object.entries(M.pass2).find(([, m]) => m.run === x.rid && !m.repeat)?.[0];
+  const sc = (e) => e ? Object.entries(e.scores).map(([k, v]) => `${ANCHORS[k][0]} <b>${v}</b>`).join(" · ") : "";
+  const fn = x.info.functional;
+  const card = $(`<div class="card">
+    <div class="row"><button id="list">All runs</button><button id="prev" ${i ? "" : "disabled"}>← Previous</button><button id="next" ${i < rows.length - 1 ? "" : "disabled"}>Next →</button>
+      <b style="font-size:17px">#${i + 1} ${esc(x.rid)}</b>
+      <span class="muted">${esc(x.info.harness || "?")} ${esc(x.info.harness_version || "")} · prompt ${x.info.prompt ? "v" + x.info.prompt : "–"} · functional ${fn ? `${fn.passed}/${fn.total}` : "–"}${x.info.minutes ? ` · built in ${x.info.minutes} min` : ""}</span></div>
+    <div class="row">Your tier <b>${x.tier ?? "–"}</b>${x.auto ? ' <span class="muted">(broken, tier 1 automatically)</span>' : ""}${x.notes.length ? `<span class="muted">· ${esc(x.notes.join(" · "))}</span>` : ""}</div>
+    <div class="clips3">${clips.map(([id, m]) => {
+      const ph = S.plan.phases.find((p) => p.key === m.phase);
+      return `<div><video src="media/clips/${id}.mp4" muted playsinline controls preload="metadata"></video>
+        <div class="cap"><b>${ph ? ph.title : m.phase}</b> <span class="muted">clip ${id}</span><br>${sc(r.pass1[id])}</div></div>`; }).join("")}</div>
+    ${game ? `<div class="row"><b>Play</b><span class="muted">game ${game} · ${sc(r.pass2[game])}</span><button class="small" id="play">Load the game</button></div>
+      <div id="gameslot"></div>` : ""}</div>`);
+  app.append(card);
+  const go = (j) => { viewRun = rows[j].rid; render(); };
+  card.querySelector("#list").onclick = () => { viewRun = null; render(); };
+  card.querySelector("#prev").onclick = () => go(i - 1);
+  card.querySelector("#next").onclick = () => go(i + 1);
+  const play = card.querySelector("#play");
+  if (play) play.onclick = async () => {
+    const { url } = await api("/api/game", { id: game });
+    play.remove();
+    const f = $(`<iframe class="game" src="${url}?${Date.now()}" title="Game" allow="autoplay" style="margin-top:8px"></iframe>`);
+    card.querySelector("#gameslot").append(f);
+    f.addEventListener("load", () => f.focus());
+  };
 }
 
 function welcome(app) {
@@ -422,7 +522,7 @@ function phaseReview(app, key) {
   const rows = ph.ids.map((id) => `<tr><td>${id}</td>${ph.axes.map((a) => `<td>${r[id].scores[a]}</td>`).join("")}
     <td class="muted">${esc(r[id].note)}</td><td><button class="small edit" data-id="${id}">Replay and edit</button></td></tr>`).join("");
   app.append($(`<div class="card"><div class="row"><b>${ph.title}</b><span class="muted">Reopen any clip to change its scores.</span>
-    <button id="back">Back to the tier board</button></div>
+    <button id="back">Continue rating</button></div>
     ${axisGuide(ph.axes)}
     <table class="review"><tr><th>Clip</th>${ph.axes.map((a) => `<th>${ANCHORS[a][0]}</th>`).join("")}<th>Note</th><th></th></tr>${rows}</table></div>`));
   app.querySelectorAll(".edit").forEach((b) => { b.onclick = () => { editing = { pass: "pass1", id: b.dataset.id }; render(); }; });
@@ -546,17 +646,19 @@ async function pass2Game(app, id, practice, isEdit) {
 }
 
 function pass2Review(app) {
-  const r = S.ratings.pass2;
-  setBar(`Pass 2 · review · ${S.plan.pass2.length} games rated`);
-  const rows = S.plan.pass2.map((id) => `<tr><td>${id}</td>${S.axes.pass2.map((a) => `<td>${r[id].scores[a]}</td>`).join("")}
+  const r = S.ratings.pass2, ids = S.plan.pass2.filter((id) => id in r), all = ids.length === S.plan.pass2.length;
+  setBar(`Pass 2 · review · ${ids.length}/${S.plan.pass2.length} games rated`);
+  const rows = ids.map((id) => `<tr><td>${id}</td>${S.axes.pass2.map((a) => `<td>${r[id].scores[a]}</td>`).join("")}
     <td class="muted">${esc(r[id].note)}</td><td><button class="small edit" data-id="${id}">Replay and edit</button></td></tr>`).join("");
   app.append($(`<div class="card"><div class="row"><b>Review the feel scores</b>
-    <span class="muted">Reopen any game to change its scores, then lock pass 2. After locking, run <code>python3 rating/report.py</code>.</span>
-    <button class="primary" id="lock">Lock pass 2</button></div>
+    <span class="muted">${all ? "Reopen any game to change its scores, then lock pass 2 to see your results." : "Reopen any game you have played to change its scores."}</span>
+    ${all ? `<button class="primary" id="lock">Lock pass 2</button>` : `<button id="back">Continue rating</button>`}</div>
     ${axisGuide(S.axes.pass2)}
     <table class="review"><tr><th>Game</th>${S.axes.pass2.map((a) => `<th>${ANCHORS[a][0]}</th>`).join("")}<th>Note</th><th></th></tr>${rows}</table></div>`));
   app.querySelectorAll(".edit").forEach((b) => { b.onclick = () => { editing = { pass: "pass2", id: b.dataset.id }; render(); }; });
-  app.querySelector("#lock").onclick = async () => { if (confirm("Lock pass 2 scores? This cannot be undone.")) { await api("/api/lock", { pass: "pass2" }); render(); } };
+  const lock = app.querySelector("#lock"), back = app.querySelector("#back");
+  if (lock) lock.onclick = async () => { if (confirm("Lock pass 2 scores? This cannot be undone.")) { await api("/api/lock", { pass: "pass2" }); reviewing = null; render(); } };
+  if (back) back.onclick = () => { reviewing = null; render(); };
 }
 
 function localStorageSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
@@ -568,7 +670,7 @@ function localStorageSet(k, v) { try { localStorage.setItem(k, v); } catch {} }
     document.querySelector("header h1").textContent = SITE.title || "Blind rating";
     const tools = $(`<span class="tools"><button class="small" id="exp" title="Download your ratings as a file">Export ratings</button>
       <button class="small" id="imp" title="Load ratings from a file you exported">Import</button><input type="file" accept=".json,application/json" hidden></span>`);
-    document.querySelector("header").append(tools);
+    document.querySelector("header").insertBefore(tools, document.getElementById("steps"));
     tools.querySelector("#exp").onclick = exportRatings;
     const file = tools.querySelector("input");
     tools.querySelector("#imp").onclick = () => file.click();
