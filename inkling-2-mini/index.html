@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ember Dock Fishing</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="frame">
+  <canvas id="game" width="320" height="180"></canvas>
+
+  <div id="hud">
+    <div id="instruction">Press <b>Space</b> or the <b>Cast</b> button to fish</div>
+
+    <div id="logPanel">
+      <div class="panel-title">Catches</div>
+      <ul id="log"><li class="empty">No catches yet</li></ul>
+    </div>
+
+    <div id="legendPanel">
+      <div class="panel-title">Odds</div>
+      <div id="legend"></div>
+    </div>
+
+    <button id="actionBtn" type="button">Cast</button>
+    <div id="toast"></div>
+  </div>
+
+  <div id="reveal" class="hidden">
+    <div id="panel" class="rarity-common">
+      <div class="rays"></div>
+      <canvas id="fishCanvas" width="112" height="78"></canvas>
+      <div id="rarityWord">COMMON</div>
+      <div id="fishName">Fish</div>
+      <button id="nextBtn" type="button">Cast Again</button>
+    </div>
+  </div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>
